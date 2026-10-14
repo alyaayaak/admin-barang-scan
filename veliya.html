@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Memory Colors with Sound</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; text-align: center; transition: background-color 0.5s, color 0.5s; }
+    h1 { margin-top: 20px; font-size: 2.5em; text-shadow: 2px 2px 5px #000; }
+
+    /* Tema Gelap */
+    body.dark-theme {
+      background-color: #0b1d3a;
+      color: #f0f0f0;
+    }
+    body.dark-theme .controls button, 
+    body.dark-theme .controls select {
+      background-color: #1e3a5f; color: #fff;
+    }
+    body.dark-theme .controls button:hover, 
+    body.dark-theme .controls select:hover {
+      background-color: #2f5a8a;
+    }
+    body.dark-theme .leaderboard {
+      background: rgba(255,255,255,0.1);
+    }
+
+    /* Tema Terang */
+    body.light-theme {
+      background-color: #f0f0f0;
+      color: #0b1d3a;
+    }
+    body.light-theme h1 {
+      text-shadow: 2px 2px 5px #aaa;
+    }
+    body.light-theme .controls button, 
+    body.light-theme .controls select {
+      background-color: #ddd; color: #333;
+    }
+    body.light-theme .controls button:hover, 
+    body.light-theme .controls select:hover {
+      background-color: #bbb;
+    }
+    body.light-theme .leaderboard {
+      background: rgba(0,0,0,0.1);
+    }
+
+    .controls button, .controls select {
+      margin: 5px; padding: 10px 15px; border: none; border-radius: 8px;
+      cursor: pointer; transition: 0.3s;
+    }
+    .panel { display: flex; justify-content: center; margin: 20px; }
+    .color-box {
+      width: 100px; height: 100px; margin: 10px; border-radius: 15px;
+      box-shadow: 0 0 10px rgba(255,255,255,0.3);
+      transition: opacity 0.3s, box-shadow 0.3s, transform 0.2s;
+    }
+    .color-box:active { transform: scale(1.2); }
+    .leaderboard { margin-top: 30px; padding: 15px; border-radius: 10px; }
+    #turnIndicator { font-size: 1.2em; margin-top: 10px; font-weight: bold; }
+    .scoreBox { margin: 8px 0; font-weight: bold; }
+  </style>
+</head>
+<body class="dark-theme">
+  <h1>Memory Colors</h1>
+  <div class="controls">
+    <button id="startBtn">Start</button>
+    <select id="modeSelect">
+      <option value="easy">Easy</option>
+      <option value="normal">Normal</option>
+      <option value="hard">Hard</option>
+    </select>
+    <button id="themeBtn">Switch Theme</button>
+  </div>
+
+  <div id="turnIndicator">Masukkan nama dulu sebelum bermain</div>
+
+  <h2>System Panel</h2>
+  <div class="panel" id="systemPanel"></div>
+
+  <h2>Player Panel</h2>
+  <div class="panel" id="playerPanel"></div>
+
+  <div class="leaderboard">
+    <input type="text" id="playerName" placeholder="Masukkan nama">
+    <div class="scoreBox">Score: <span id="scoreDisplay">0</span></div>
+    <div class="scoreBox">Highscore: <span id="highScoreDisplay">0</span></div>
+    <div class="scoreBox">Timer: <span id="timerDisplay">--</span></div>
+    <ul id="scoreList"></ul>
+  </div>
+
+  <script>
+    const systemPanel = document.getElementById('systemPanel');
+    const playerPanel = document.getElementById('playerPanel');
+    const startBtn = document.getElementById('startBtn');
+    const modeSelect = document.getElementById('modeSelect');
+    const scoreList = document.getElementById('scoreList');
+    const playerNameInput = document.getElementById('playerName');
+    const themeBtn = document.getElementById('themeBtn');
+    const body = document.body;
+    const turnIndicator = document.getElementById('turnIndicator');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const highScoreDisplay = document.getElementById('highScoreDisplay');
+    const timerDisplay = document.getElementById('timerDisplay');
+
+    const colors = ['red','green','blue','yellow'];
+    let sequence = [];
+    let playerSequence = [];
+    let level = 0;
+    let speed = 1000;
+    let playerTurn = false;
+    let playerName = "";
+    let score = 0;
+
+    // timer variables
+    let timerInterval = null;
+    let timerDuration = 8; // seconds default
+    let timerRemaining = 0;
+
+    // untuk menyimpan highscore per nama di localStorage
+    const HIGHSCORE_KEY = 'memoryColorsHighScores';
+    let highScores = JSON.parse(localStorage.getItem(HIGHSCORE_KEY) || '{}');
+
+    // buat kotak warna di system panel
+    colors.forEach(c => {
+      const box = document.createElement('div');
+      box.className = 'color-box';
+      box.style.backgroundColor = c;
+      box.dataset.color = c;
+      systemPanel.appendChild(box);
+    });
+
+    // buat kotak warna di player panel
+    colors.forEach(c => {
+      const box = document.createElement('div');
+      box.className = 'color-box';
+      box.style.backgroundColor = c;
+      box.dataset.color = c;
+      box.addEventListener('click', () => {
+        if(playerTurn) {
+          playSound(c);
+          handlePlayerClick(c);
+        }
+      });
+      playerPanel.appendChild(box);
+    });
+
+    // ganti tema
+    themeBtn.addEventListener('click', () => {
+      body.classList.toggle('light-theme');
+      body.classList.toggle('dark-theme');
+    });
+
+    // set kecepatan sesuai mode dan juga durasi timer per mode
+    function setSpeed() {
+      const mode = modeSelect.value;
+      if(mode === 'easy') {
+        speed = 1000;
+        timerDuration = 12;
+      }
+      if(mode === 'normal') {
+        speed = 600;
+        timerDuration = 8;
+      }
+      if(mode === 'hard') {
+        speed = 300;
+        timerDuration = 5;
+      }
+    }
+
+    // mulai game
+    startBtn.addEventListener('click', () => {
+      playerName = playerNameInput.value.trim();
+      if(playerName === ""){
+        alert("Masukkan nama dulu sebelum bermain!");
+        return;
+      }
+      // reset score di awal permainan
+      score = 0;
+      updateScoreDisplay();
+      // hentikan timer bila ada
+      stopTimer();
+      // tampilkan highscore pemain jika ada
+      const hs = highScores[playerName] || 0;
+      highScoreDisplay.textContent = hs;
+      setSpeed();
+      level = 0;
+      sequence = [];
+      nextRound();
+    });
+
+    // generate urutan baru (4 warna)
+    function nextRound() {
+      playerSequence = [];
+      level++;
+      sequence = [];
+      for(let i=0; i<4; i++){
+        const randomColor = colors[Math.floor(Math.random()*colors.length)];
+        sequence.push(randomColor);
+      }
+      showSequence();
+    }
+
+    // tampilkan urutan di system panel
+    function showSequence() {
+      playerTurn = false;
+      turnIndicator.textContent = "Giliran Sistem: Perhatikan urutan!";
+      let i = 0;
+      const interval = setInterval(() => {
+        const color = sequence[i];
+        const box = [...systemPanel.children].find(b => b.dataset.color === color);
+        box.style.opacity = 0.3;
+        box.style.boxShadow = "0 0 20px white";
+        playSound(color);
+        setTimeout(() => {
+          box.style.opacity = 1;
+          box.style.boxShadow = "0 0 10px rgba(255,255,255,0.3)";
+        }, speed/2);
+        i++;
+        if(i >= sequence.length) {
+          clearInterval(interval);
+          setTimeout(()=>{
+            playerTurn = true;
+            // mulai timer saat giliran pemain dimulai
+            startTimer();
+            turnIndicator.textContent = "Giliran Player: Klik urutan warna!";
+          }, speed);
+        }
+      }, speed);
+    }
+
+    // start timer saat giliran pemain
+    function startTimer() {
+      stopTimer();
+      timerRemaining = timerDuration;
+      updateTimerDisplay();
+      timerInterval = setInterval(() => {
+        timerRemaining--;
+        updateTimerDisplay();
+        if(timerRemaining <= 0) {
+          stopTimer();
+          handleTimeOut();
+        }
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if(timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+      timerDisplay.textContent = '--';
+    }
+
+    function updateTimerDisplay() {
+      timerDisplay.textContent = timerRemaining + 's';
+    }
+
+    function handleTimeOut() {
+      alert("Waktu Habis! Game Over! Level: " + level);
+      turnIndicator.textContent = "Time's up! Game Over!";
+      addScore(playerName, level, score);
+      saveHighScore(playerName, score);
+      playerTurn = false;
+    }
+
+    // klik pemain di player panel
+    function handlePlayerClick(color) {
+      playerSequence.push(color);
+      const index = playerSequence.length-1;
+      if(playerSequence[index] !== sequence[index]) {
+        alert("Game Over! Level: " + level);
+        turnIndicator.textContent = "Game Over!";
+        stopTimer();
+        // simpan skor ke leaderboard (mempertahankan fungsi lama dan menambahkan skor)
+        addScore(playerName, level, score);
+        // cek dan simpan highscore per pemain
+        saveHighScore(playerName, score);
+        playerTurn = false;
+        return;
+      }
+
+      // jika benar pada klik ini, tambahkan poin
+      score += 10;
+      updateScoreDisplay();
+
+      if(playerSequence.length === sequence.length) {
+        // pemain berhasil menyelesaikan sebelum waktu habis
+        stopTimer();
+        turnIndicator.textContent = "Benar! Lanjut ke level berikut.";
+        setTimeout(nextRound, 1000);
+      }
+    }
+
+    // otomatis simpan skor ke leaderboard
+    // diubah supaya bisa menerima poin (opsional) dan menampilkan juga skor jika diberikan
+    function addScore(name, lvl, pts){
+      const li = document.createElement('li');
+      if(typeof pts !== 'undefined') {
+        li.textContent = `${name} - Level ${lvl} - Score ${pts}`;
+      } else {
+        li.textContent = `${name} - Level ${lvl}`;
+      }
+      scoreList.appendChild(li);
+    }
+
+    // update tampilan skor saat ini
+    function updateScoreDisplay() {
+      scoreDisplay.textContent = score;
+    }
+
+    // simpan highscore per nama di localStorage (hanya jika lebih tinggi)
+    function saveHighScore(name, pts) {
+      if(!name) return;
+      const prev = highScores[name] || 0;
+      if(pts > prev) {
+        highScores[name] = pts;
+        localStorage.setItem(HIGHSCORE_KEY, JSON.stringify(highScores));
+      }
+      highScoreDisplay.textContent = highScores[name] || 0;
+    }
+
+    // fungsi suara per warna
+    function playSound(color){
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      if(color === 'red') oscillator.frequency.value = 800;
+      if(color === 'green') oscillator.frequency.value = 600;
+      if(color === 'blue') oscillator.frequency.value = 400;
+      if(color === 'yellow') oscillator.frequency.value = 200;
+
+      oscillator.type = 'sine';
+      oscillator.start();
+      gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
+      oscillator.stop(ctx.currentTime + 0.3);
+    }
+
+    // saat load halaman, tampilkan default highscore 0 dan timer
+    (function init() {
+      highScoreDisplay.textContent = 0;
+      timerDisplay.textContent = '--';
+    })();
+  </script>
+</body>
+</html>

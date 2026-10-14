@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Formulir Pendaftaran</title>
+  <style>
+    /* ====== CSS Tema Pinky ====== */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background: #ffe6f0; /* background pink muda */
+    }
+    .form-container {
+      max-width: 420px;
+      margin: auto;
+      background: #fff0f6; /* kotak form warna pink lembut */
+      padding: 50px;
+      border-radius: 18px;
+      box-shadow: 0 0 15px rgba(255, 105, 180, 0.3); /* efek bayangan pink */
+    }
+    h2 {
+      text-align: center;
+      color: #d63384; /* judul warna pink tua */
+    }
+    .form-group {
+      margin-bottom: 28px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #c2185b; /* label warna pink gelap */
+      font-weight: bold;
+    }
+    input {
+      width: 100%;
+      padding: 5px;
+      border: 1px solid #f48fb1; /* border pink */
+      border-radius: 6px;
+      outline: none;
+    }
+    input:focus {
+      border-color: #d63384; /* border berubah saat fokus */
+      box-shadow: 0 0 50px rgba(214, 51, 132, 0.5);
+    }
+    .error-message {
+      color: #e91e63; /* pesan error warna pink terang */
+      font-size: 12px;
+      display: none; /* disembunyikan default */
+    }
+    .success-alert {
+      color: #4caf50; /* pesan sukses warna hijau */
+      font-weight: bold;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    button {
+      padding: 10px 15px;
+      background: #ff69b4; /* tombol pink */
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #d63384; /* tombol berubah pink tua saat hover */
+    }
+  </style>
+</head>
+<body>
+<div class="form-container">
+  <h2>Formulir Pendaftaran</h2>
+  <!-- Pesan sukses ditampilkan di sini -->
+  <div id="successAlert" class="success-alert"></div>
+
+  <!-- Formulir utama -->
+  <form id="registrationForm" novalidate>
+    <!-- Nama Lengkap -->
+    <div class="form-group">
+      <label for="fullName">Nama Lengkap</label>
+      <input type="text" id="fullName" name="fullName" required minlength="3" placeholder="Contoh: Alya">
+      <div class="error-message" id="fullNameError">Nama wajib diisi (minimal 3 karakter).</div>
+    </div>
+
+    <!-- Email -->
+    <div class="form-group">
+      <label for="email">Alamat Email</label>
+      <input type="email" id="email" name="email" required placeholder="contoh@domain.com">
+      <div class="error-message" id="emailError">Masukkan format email yang valid.</div>
+    </div>
+
+    <!-- Nomor Telepon -->
+    <div class="form-group">
+      <label for="phone">Nomor Telepon</label>
+      <input type="tel" id="phone" name="phone" required pattern="^08[0-9]{8,11}$" placeholder="08123456789">
+      <div class="error-message" id="phoneError">Nomor telepon harus diawali '08' dan terdiri dari 10-13 digit angka.</div>
+    </div>
+
+    <!-- Kata Sandi -->
+    <div class="form-group">
+      <label for="password">Kata Sandi</label>
+      <!-- Input password -->
+<input type="password" id="password" name="password" required minlength="8" placeholder="Minimal 8 karakter">
+<!-- Catatan: simbol mata yang muncul di samping input ini
+     bukan dari kode kita, melainkan fitur bawaan browser
+     untuk show/hide password -->
+      <div class="error-message" id="passwordError">Kata sandi minimal 8 karakter.</div>
+    </div>
+
+    <!-- Konfirmasi Kata Sandi -->
+    <div class="form-group">
+      <label for="confirmPassword">Konfirmasi Kata Sandi</label>
+      <input type="password" id="confirmPassword" name="confirmPassword" required placeholder="Ulangi kata sandi">
+      <div class="error-message" id="confirmPasswordError">Konfirmasi kata sandi tidak sama.</div>
+    </div>
+
+    <!-- Tombol submit -->
+    <button type="submit">Daftar Sekarang</button>
+  </form>
+</div>
+
+<script>
+/* ====== JavaScript Validasi Form ====== */
+document.getElementById("registrationForm").addEventListener("submit", function(event) {
+  event.preventDefault(); // cegah submit default agar bisa validasi dulu
+
+  let valid = true; // flag untuk cek apakah semua input valid
+
+  // Validasi Nama
+  const fullName = document.getElementById("fullName");
+  const fullNameError = document.getElementById("fullNameError");
+  if (fullName.value.trim().length < 3) {
+    fullNameError.style.display = "block";
+    valid = false;
+  } else {
+    fullNameError.style.display = "none";
+  }
+
+  // Validasi Email
+  const email = document.getElementById("email");
+  const emailError = document.getElementById("emailError");
+  if (!email.checkValidity()) {
+    emailError.style.display = "block";
+    valid = false;
+  } else {
+    emailError.style.display = "none";
+  }
+
+  // Validasi Nomor Telepon
+  const phone = document.getElementById("phone");
+  const phoneError = document.getElementById("phoneError");
+  if (!phone.checkValidity()) {
+    phoneError.style.display = "block";
+    valid = false;
+  } else {
+    phoneError.style.display = "none";
+  }
+
+  // Validasi Kata Sandi
+  const password = document.getElementById("password");
+  const passwordError = document.getElementById("passwordError");
+  if (password.value.length < 8) {
+    passwordError.style.display = "block";
+    valid = false;
+  } else {
+    passwordError.style.display = "none";
+  }
+
+  // Validasi Konfirmasi Kata Sandi
+  const confirmPassword = document.getElementById("confirmPassword");
+  const confirmPasswordError = document.getElementById("confirmPasswordError");
+  if (confirmPassword.value !== password.value || confirmPassword.value === "") {
+    confirmPasswordError.style.display = "block";
+    valid = false;
+  } else {
+    confirmPasswordError.style.display = "none";
+  }
+
+  // Jika semua valid → tampilkan pesan sukses + reset form
+  const successAlert = document.getElementById("successAlert");
+  if (valid) {
+    successAlert.textContent = "Pendaftaran berhasil!";
+    document.getElementById("registrationForm").reset(); // reset form otomatis
+  } else {
+    successAlert.textContent = "";
+  }
+});
+</script>
+</body>
+</html>

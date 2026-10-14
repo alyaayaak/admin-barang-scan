@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kalkulator Predikat Nilai</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Kalkulator Predikat Nilai</h1>
+    <form id="nilaiForm">
+      <label for="nilai1">Nilai Tugas 1:</label>
+      <input type="number" id="nilai1" required>
+
+      <label for="nilai2">Nilai Tugas 2:</label>
+      <input type="number" id="nilai2" required>
+
+      <label for="nilai3">Nilai Tugas 3:</label>
+      <input type="number" id="nilai3" required>
+
+      <button type="submit">Hitung Hasil</button>
+    </form>
+
+    <div id="hasil">
+      <p><strong>Rata-rata:</strong> <span id="rataRata"></span></p>
+      <p><strong>Kategori Nilai:</strong> <span id="kategori"></span></p>
+      <p><strong>Predikat:</strong> <span id="predikat"></span></p>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>

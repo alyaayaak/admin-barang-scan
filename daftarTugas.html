@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="id">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Daftar Tugas Sederhana</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --text: #0b2a2a;
+      --accent: #0b7a73;
+      --muted: #666;
+      --card: #f6f6f6;
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, Segoe UI, Roboto, Arial;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.4
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 24px auto;
+      padding: 0 16px
+    }
+
+    header#main-header {
+      padding: 18px 0;
+      border-bottom: 4px solid rgba(11, 42, 42, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px
+    }
+
+    header#main-header h1 {
+      margin: 0;
+      color: var(--accent);
+      font-size: 1.2rem
+    }
+
+    .controls-line {
+      display: flex;
+      gap: 12px;
+      align-items: center
+    }
+
+    .controls-line button,
+    .controls-line label {
+      font-size: 0.95rem
+    }
+
+    .todo {
+      margin-top: 8px;
+      background: var(--card);
+      padding: 16px;
+      border-radius: 8px
+    }
+
+    #todo-form {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap
+    }
+
+    #todo-input {
+      flex: 1;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(11, 42, 42, 0.12)
+    }
+
+    #subject-select {
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(11, 42, 42, 0.12);
+      background: #fff
+    }
+
+    #todo-form button {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer
+    }
+
+    #char-count {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-left: 8px
+    }
+
+    #todo-list {
+      list-style: none;
+      padding: 0;
+      margin: 12px 0 0
+    }
+
+    /* each li relative so popover positions inside it */
+    #todo-list li {
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      background: #fff;
+      border: 1px solid rgba(0, 4, 4, 0.06)
+    }
+
+    #todo-list li .left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1
+    }
+
+    .text {
+      cursor: pointer;
+      flex: 1
+    }
+
+    .text.completed {
+      text-decoration: line-through;
+      opacity: 0.9
+    }
+
+    .delete-btn {
+      margin-left: 8px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(200, 0, 0, 0.08);
+      background: rgba(255, 255, 255, 0.8);
+      color: #b00;
+      cursor: pointer
+    }
+
+    .color-btn {
+      margin-left: 8px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(11, 42, 42, 0.08);
+      background: #fff;
+      cursor: pointer
+    }
+
+    .color-popover {
+      position: absolute;
+      top: 44px;
+      right: 12px;
+      background: #fff;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      padding: 8px;
+      border-radius: 8px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+      z-index: 50;
+      display: none;
+      white-space: nowrap
+    }
+
+    .color-popover input[type="color"] {
+      width: 220px;
+      height: 38px;
+      border: 0;
+      background: transparent;
+      cursor: pointer
+    }
+
+    .subject-tag {
+      font-size: 0.8rem;
+      padding: 2px 6px;
+      border-radius: 6px;
+      margin-right: 4px;
+      background: rgba(0, 0, 0, 0.06)
+    }
+
+    /* accent class for header toggle */
+    .accent h1 {
+      color: #b04a4a;
+      transform: rotate(-1deg)
+    }
+
+    /* Dark mode */
+    body.dark {
+      --bg: #0f1720;
+      --text: #e6eef0;
+      --accent: #7bd6c7;
+      --muted: #9fb6b0;
+      --card: #112027
+    }
+
+    body.dark header#main-header {
+      border-bottom-color: rgba(123, 214, 199, 0.12)
+    }
+
+    body.dark #todo-list li {
+      border-color: rgba(255, 255, 255, 0.03)
+    }
+
+    .notes {
+      margin-top: 12px;
+      color: var(--muted)
+    }
+
+    footer {
+      max-width: 900px;
+      margin: 20px auto 40px;
+      padding: 0 16px;
+      color: var(--muted);
+      font-size: 0.9rem
+    }
+  </style>
+</head>
+
+<body>
+  <header id="main-header" class="container">
+    <h1>Daftar Tugas Sederhana</h1>
+    <div class="controls-line">
+      <button id="change-btn" aria-pressed="false">Ubah Header</button>
+      <label style="display:flex;align-items:center;gap:8px;color:var(--muted);font-size:0.95rem">
+        <input type="checkbox" id="dark-toggle" /> Dark Mode
+      </label>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="todo" aria-labelledby="todo-title">
+      <h2 id="todo-title">Daftar Tugas</h2>
+
+      <form id="todo-form" aria-label="Form tambah tugas">
+        <input id="todo-input" type="text" maxlength="100" placeholder="Tulis tugas baru..." autocomplete="off" />
+        <select id="subject-select" aria-label="Pilih mata pelajaran">
+          <option value="Lainnya">Lainnya</option>
+          <option value="Matematika">Matematika</option>
+          <option value="Bahasa Indonesia">Bahasa Indonesia</option>
+          <option value="PKN">PKN</option>
+          <option value="Produktif RPL - Bu Eka">Produktif RPL - Bu Eka</option>
+          <option value="Bahasa Inggris">Bahasa Inggris</option>
+        </select>
+        <button type="submit">Tambah</button>
+        <div id="char-count" aria-live="polite">0 / 100</div>
+      </form>
+
+      <ul id="todo-list" aria-live="polite"></ul>
+      </ul>
+    </section>
+    </section>
+  </main>
+
+  <footer>Daftar tugas sederhana — tugas praktik DOM & Event Handling </footer>
+  <script>
+    const changeBtn = document.querySelector('#change-btn');
+    const darkToggle = document.querySelector('#dark-toggle');
+    const form = document.querySelector('#todo-form');
+    const input = document.querySelector('#todo-input');
+    const subjectSelect = document.querySelector('#subject-select');
+    const charCount = document.querySelector('#char-count');
+    const list = document.querySelector('#todo-list');
+    const header = document.querySelector('#main-header');
+
+    // small helpers
+    const esc = s => s.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+    const getContrastYIQ = hex => {
+      let h = (hex || '#ffffff').replace('#', '').trim();
+      if (h.length === 3) h = h.split('').map(c => c + c).join('');
+      const r = parseInt(h.substr(0, 2), 16), g = parseInt(h.substr(2, 2), 16), b = parseInt(h.substr(4, 2), 16);
+      return (r * 299 + g * 587 + b * 114) / 1000 >= 128 ? '#000' : '#fff';
+    };
+    // convert computed rgb(...) to hex (basic)
+    const rgbToHex = (rgb) => {
+      if (!rgb) return '#ffffff';
+      const m = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+      if (!m) return '#ffffff';
+      const toHex = n => ('0' + Number(n).toString(16)).slice(-2);
+      return '#' + toHex(m[1]) + toHex(m[2]) + toHex(m[3]);
+    };
+
+    // header change button
+    changeBtn.addEventListener('click', () => {
+      const titleEl = header.querySelector('h1');
+      titleEl.textContent = titleEl.textContent.includes('Daftar Tugas Sederhana') ? 'Selamat Belajar DOM!' : 'Daftar Tugas Sederhana';
+      header.classList.toggle('accent');
+      changeBtn.setAttribute('aria-pressed', header.classList.contains('accent') ? 'true' : 'false');
+    });
+
+    // dark mode toggle - also recompute contrast for all items
+    darkToggle.addEventListener('change', (e) => {
+      document.body.classList.toggle('dark', e.target.checked);
+      // recompute contrast for each li based on its effective background color
+      document.querySelectorAll('#todo-list li').forEach(li => {
+        // prefer inline style backgroundColor, otherwise computed style
+        const bg = li.style.backgroundColor || getComputedStyle(li).backgroundColor;
+        const hex = rgbToHex(bg);
+        li.style.color = getContrastYIQ(hex);
+      });
+    });
+
+    input.addEventListener('input', () => charCount.textContent = `${input.value.length} / ${input.maxLength}`);
+
+    // create a task with popover color control inside the li
+    function addTask(text, subject) {
+      const safe = esc(text);
+      const li = document.createElement('li');
+      li.className = 'todo-item';
+      li.dataset.subject = subject;
+      // default white background
+      const defaultBg = '#ffffff';
+      li.style.backgroundColor = defaultBg;
+      li.style.color = getContrastYIQ(defaultBg);
+
+      const left = document.createElement('div');
+      left.className = 'left';
+      const subjTag = document.createElement('span');
+      subjTag.className = 'subject-tag';
+      subjTag.textContent = subject;
+      const span = document.createElement('span');
+      span.className = 'text';
+      span.innerHTML = safe;
+      left.appendChild(subjTag);
+      left.appendChild(span);
+
+      // color button & popover (positioned inside li)
+      const colorBtn = document.createElement('button');
+      colorBtn.type = 'button';
+      colorBtn.className = 'color-btn';
+      colorBtn.textContent = '🎨';
+      colorBtn.title = 'Sesuaikan warna latar';
+      const pop = document.createElement('div');
+      pop.className = 'color-popover';
+      const colorInput = document.createElement('input');
+      colorInput.type = 'color';
+      colorInput.value = defaultBg;
+      pop.appendChild(colorInput);
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'delete-btn';
+      delBtn.textContent = 'Hapus';
+
+      colorBtn.addEventListener('click', (ev) => {
+        // close other popovers
+        document.querySelectorAll('.color-popover').forEach(p => { if (p !== pop) p.style.display = 'none'; });
+        pop.style.display = pop.style.display === 'block' ? 'none' : 'block';
+        setTimeout(() => colorInput.focus(), 40);
+        ev.stopPropagation();
+      });
+
+      colorInput.addEventListener('input', (e) => {
+        const c = e.target.value || '#ffffff';
+        li.style.backgroundColor = c;
+        li.style.color = getContrastYIQ(c);
+      });
+
+      li.appendChild(left);
+      li.appendChild(colorBtn);
+      li.appendChild(pop);
+      li.appendChild(delBtn);
+      list.appendChild(li);
+      return li;
+    }
+
+    // close popovers when clicking outside any li/popover
+    document.addEventListener('click', (e) => {
+      // if click inside a popover or a color button, do nothing
+      if (e.target.closest('.color-popover') || e.target.matches('.color-btn') || e.target.closest('.color-btn')) return;
+      document.querySelectorAll('.color-popover').forEach(p => p.style.display = 'none');
+    });
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const raw = input.value.trim(); if (!raw) return;
+      const subject = subjectSelect.value || 'Lainnya';
+      addTask(raw, subject);
+      input.value = ''; subjectSelect.value = 'Lainnya'; charCount.textContent = `0 / ${input.maxLength}`; input.focus();
+    });
+
+    // delegation: delete & toggle complete
+    list.addEventListener('click', (e) => {
+      if (e.target.matches('.delete-btn')) { const li = e.target.closest('li'); if (li) li.remove(); return; }
+      if (e.target.matches('.text')) e.target.classList.toggle('completed');
+    });
+
+  </script>
+</body>
+
+</html>

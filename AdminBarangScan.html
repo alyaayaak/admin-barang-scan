@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Admin Barang + Barcode</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1b1f24;--mut:#6b7280;--bd:#e3e6ea;--pri:#2563eb;--pt:#fff;--dg:#dc2626;--ok:#16a34a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111418;--card:#1a1f26;--tx:#e8eaed;--mut:#9aa3af;--bd:#2c333d;--pri:#3b82f6}}
+:root[data-theme="dark"]{--bg:#111418;--card:#1a1f26;--tx:#e8eaed;--mut:#9aa3af;--bd:#2c333d;--pri:#3b82f6}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:900px;margin:0 auto;padding:16px}
+h1{font-size:20px;margin:0 0 12px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+input,select{width:100%;padding:10px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--tx);font:inherit}
+.bar input{flex:1;min-width:140px;width:auto}
+button{padding:10px 14px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--tx);font:inherit;cursor:pointer}
+button.p{background:var(--pri);color:var(--pt);border-color:var(--pri)}
+button.d{color:var(--dg)}
+.tw{overflow-x:auto;background:var(--card);border:1px solid var(--bd);border-radius:10px}
+table{width:100%;border-collapse:collapse;min-width:560px}
+th,td{padding:10px;text-align:left;border-bottom:1px solid var(--bd);white-space:nowrap}
+th{color:var(--mut);font-size:12px;text-transform:uppercase}
+tr:last-child td{border-bottom:0}
+td.a{display:flex;gap:6px}
+td.a button{padding:6px 10px}
+.empty{padding:28px;text-align:center;color:var(--mut)}
+.mono{font-family:ui-monospace,Menlo,monospace}
+.low{color:var(--dg);font-weight:600}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
+.ov.on{display:flex}
+.md{background:var(--card);border-radius:12px;padding:16px;width:100%;max-width:420px;max-height:92vh;overflow:auto}
+.md h2{margin:0 0 12px;font-size:17px}
+label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
+.row{display:flex;gap:8px}
+.row input{flex:1}
+.ft{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+#reader{width:100%;min-height:220px;background:#000;border-radius:8px;overflow:hidden}
+.msg{font-size:13px;margin-top:8px;color:var(--mut)}
+.err{color:var(--dg)}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:20px;display:none;z-index:20}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Admin Barang</h1>
+  <div class="bar">
+    <input id="q" placeholder="Cari nama / barcode / kategori…">
+    <button id="scanSearch">Scan</button>
+    <button class="p" id="add">+ Tambah</button>
+  </div>
+  <div class="tw"><table>
+    <thead><tr><th>Barcode</th><th>Nama</th><th>Kategori</th><th>Harga</th><th>Stok</th><th></th></tr></thead>
+    <tbody id="tb"></tbody>
+  </table></div>
+  <div class="msg" id="count"></div>
+</div>
+
+<div class="ov" id="fm"><div class="md">
+  <h2 id="ft">Tambah Barang</h2>
+  <label>Barcode</label>
+  <div class="row"><input id="fb" placeholder="Scan atau ketik" inputmode="numeric"><button id="fscan" type="button">Scan</button></div>
+  <label>Nama barang</label><input id="fn">
+  <label>Kategori</label><input id="fk" list="kl"><datalist id="kl"></datalist>
+  <label>Harga (Rp)</label><input id="fh" type="number" min="0" inputmode="numeric">
+  <label>Stok</label><input id="fs" type="number" min="0" inputmode="numeric">
+  <div class="msg err" id="fe"></div>
+  <div class="ft"><button id="fc">Batal</button><button class="p" id="fsv">Simpan</button></div>
+</div></div>
+
+<div class="ov" id="sm"><div class="md">
+  <h2>Arahkan kamera ke barcode</h2>
+  <div id="reader"></div>
+  <div class="msg" id="sinfo">Memulai kamera…</div>
+  <div class="ft"><button id="sc">Tutup</button></div>
+</div></div>
+
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const KEY="barang_v1";
+let items=[],editId=null,scanner=null,onScan=null;
+
+function load(){try{items=JSON.parse(localStorage.getItem(KEY)||"[]")}catch(e){items=[]}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(items))}catch(e){toast("Gagal menyimpan ke browser")}}
+function toast(t){const e=$("toast");e.textContent=t;e.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display="none",2200)}
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const rp=n=>"Rp "+Number(n||0).toLocaleString("id-ID");
+
+function render(){
+  const q=$("q").value.trim().toLowerCase();
+  const list=items.filter(i=>!q||[i.barcode,i.nama,i.kategori].join(" ").toLowerCase().includes(q));
+  $("tb").innerHTML=list.length?list.map(i=>`<tr>
+    <td class="mono">${esc(i.barcode)}</td><td>${esc(i.nama)}</td><td>${esc(i.kategori||"-")}</td>
+    <td>${rp(i.harga)}</td><td class="${i.stok<=5?"low":""}">${i.stok}</td>
+    <td class="a"><button data-e="${i.id}">Edit</button><button class="d" data-d="${i.id}">Hapus</button></td></tr>`).join("")
+    :`<tr><td colspan="6" class="empty">${items.length?"Tidak ada hasil":"Belum ada barang. Klik “+ Tambah” atau scan barcode."}</td></tr>`;
+  $("count").textContent=`${list.length} dari ${items.length} barang`;
+  $("kl").innerHTML=[...new Set(items.map(i=>i.kategori).filter(Boolean))].map(k=>`<option value="${esc(k)}">`).join("");
+}
+
+function openForm(item,barcode){
+  editId=item?item.id:null;
+  $("ft").textContent=item?"Edit Barang":"Tambah Barang";
+  $("fb").value=item?item.barcode:(barcode||"");
+  $("fn").value=item?item.nama:"";$("fk").value=item?item.kategori:"";
+  $("fh").value=item?item.harga:"";$("fs").value=item?item.stok:"";
+  $("fe").textContent="";$("fm").classList.add("on");
+}
+function closeForm(){$("fm").classList.remove("on")}
+
+function submitForm(){
+  const barcode=$("fb").value.trim(),nama=$("fn").value.trim();
+  const harga=Number($("fh").value),stok=Number($("fs").value);
+  if(!barcode||!nama){$("fe").textContent="Barcode dan nama wajib diisi.";return}
+  if(isNaN(harga)||harga<0||isNaN(stok)||stok<0){$("fe").textContent="Harga dan stok harus angka ≥ 0.";return}
+  if(items.some(i=>i.barcode===barcode&&i.id!==editId)){$("fe").textContent="Barcode sudah dipakai barang lain.";return}
+  const data={barcode,nama,kategori:$("fk").value.trim(),harga,stok};
+  if(editId){items=items.map(i=>i.id===editId?{...i,...data}:i);toast("Barang diperbarui")}
+  else{items.unshift({id:Date.now().toString(36),...data});toast("Barang ditambahkan")}
+  save();render();closeForm();
+}
+
+async function startScan(cb){
+  onScan=cb;$("sm").classList.add("on");$("sinfo").className="msg";$("sinfo").textContent="Memulai kamera…";
+  if(typeof Html5Qrcode==="undefined"){$("sinfo").className="msg err";$("sinfo").textContent="Library scanner gagal dimuat.";return}
+  try{
+    scanner=new Html5Qrcode("reader");
+    await scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:260,height:150}},
+      async code=>{const f=onScan;onScan=null;await stopScan();if(f)f(code)},()=>{});
+    $("sinfo").textContent="Mencari barcode…";
+  }catch(e){
+    $("sinfo").className="msg err";
+    $("sinfo").textContent="Kamera tidak bisa dibuka. Izinkan akses kamera (perlu HTTPS) lalu coba lagi.";
+  }
+}
+async function stopScan(){
+  try{if(scanner){if(scanner.isScanning)await scanner.stop();scanner.clear()}}catch(e){}
+  scanner=null;$("sm").classList.remove("on");
+}
+
+$("add").onclick=()=>openForm();
+$("fc").onclick=closeForm;
+$("fsv").onclick=submitForm;
+$("sc").onclick=stopScan;
+$("q").oninput=render;
+$("fscan").onclick=()=>startScan(code=>{$("fb").value=code;
+  if(items.some(i=>i.barcode===code&&i.id!==editId))$("fe").textContent="Barcode ini sudah terdaftar.";else $("fe").textContent=""});
+$("scanSearch").onclick=()=>startScan(code=>{
+  const f=items.find(i=>i.barcode===code);
+  if(f){openForm(f);toast("Barang ditemukan")}
+  else if(confirm(`Barcode ${code} belum terdaftar. Tambah barang baru?`))openForm(null,code);
+});
+$("tb").onclick=e=>{
+  const ed=e.target.dataset.e,dl=e.target.dataset.d;
+  if(ed)openForm(items.find(i=>i.id===ed));
+  if(dl){const it=items.find(i=>i.id===dl);
+    if(it&&confirm(`Hapus "${it.nama}"?`)){items=items.filter(i=>i.id!==dl);save();render();toast("Barang dihapus")}}
+};
+load();render();
+</script>
+</body>
+</html>
